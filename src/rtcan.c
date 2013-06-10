@@ -21,7 +21,14 @@ uint32_t last_sync_tim = 0;
 /*===========================================================================*/
 /* Driver local functions.                                                   */
 /*===========================================================================*/
+
 // TODO: restore old master arbitration protocol
+uint8_t stm32_id8(void) {
+	const unsigned long * uid = (const unsigned long *)0x1FFFF7E8;
+
+	return (uid[2] & 0xFF);
+}
+
 bool_t rtcan_ismaster(void) {
 	return (stm32_id8() == 40);
 }
@@ -185,7 +192,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 			rtcanp->cnt++;
 			rtcanp->slot = 0;
 			// FIXME: should be measured.
-			rtcan_lld_tim_set_counter(158);
+			rtcan_lld_tim_set_counter(rtcanp, 158);
 			break;
 			case RTCAN_SYNCING:
 			rtcanp->cnt++;
@@ -198,7 +205,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 				rtcan_lld_tim_set_interval(rtcanp, interval);
 				rtcan_lld_tim_start_timer(rtcanp);
 				// FIXME: should be measured.
-				rtcan_lld_tim_set_counter(158);
+				rtcan_lld_tim_set_counter(rtcanp, 158);
 			}
 			break;
 			default:

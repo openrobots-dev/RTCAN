@@ -252,6 +252,7 @@ typedef struct RTCANDriver {
 } RTCANDriver;
 
 #include "rtcan_lld_can.h"
+#include "rtcan_lld_tim.h"
 
 
 /*===========================================================================*/

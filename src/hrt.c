@@ -5,7 +5,6 @@
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
 
-#define RTCAN_HRT_TEST 1
 /*===========================================================================*/
 /* Driver exported variables.                                                */
 /*===========================================================================*/
@@ -309,8 +308,6 @@ void hrt_reset(RTCANDriver * rtcanp) {
 
 	rtcanp->reservation_mask[0] = 0;
 	rtcanp->reservation_mask[1] = 0;
-
-	hrt_test_1x100_big(rtcanp);
 }
 
 

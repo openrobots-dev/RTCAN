@@ -2,6 +2,8 @@
 #include "hal.h"
 #include "rtcan.h"
 
+#include <math.h>
+
 #include "msgqueue.h"
 
 /*===========================================================================*/
@@ -30,19 +32,25 @@ uint8_t stm32_id8(void) {
 }
 
 bool_t rtcan_ismaster(void) {
-	return (stm32_id8() == 40);
+#ifdef RTCAN_ISMASTER
+	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
+#if RTCAN_USE_HRT
 void rtcan_sync_transmit(RTCANDriver * rtcanp) {
 	rtcan_txframe_t sync_frame;
 
-	sync_frame.id = (0xFF & rtcanp->cnt) << 7;
+	sync_frame.id = (0xFF & rtcanp->cycle) << 7;
 	sync_frame.len = 8;
 	sync_frame.data32[0] = rtcanp->reservation_mask[0];
 	sync_frame.data32[1] = rtcanp->reservation_mask[1];
 
 	rtcan_lld_can_transmit(rtcanp, &sync_frame);
 }
+#endif
 
 /*===========================================================================*/
 /* Driver exported functions.                                                */
@@ -61,16 +69,21 @@ void rtcan_tim_isr_code(RTCANDriver * rtcanp) {
 	;
 
 	switch (rtcanp->state) {
+#if RTCAN_USE_HRT
 	case RTCAN_MASTER:
 		if (rtcanp->slot == (rtcanp->config->slots - 1)) {
-			rtcan_sync_transmit(rtcanp);
-			rtcanp->cnt++;
+			rtcanp->cycle++;
 			rtcanp->slot = 0;
+			rtcan_sync_transmit(rtcanp);
+			chSysUnlockFromIsr();
+			return;
 		}
 		break;
+#endif
 	case RTCAN_SLAVE:
 		if (rtcanp->slot > rtcanp->config->slots) {
 			rtcanp->state = RTCAN_ERROR;
+			while(1);
 		}
 		break;
 	case RTCAN_SYNCING:
@@ -81,8 +94,8 @@ void rtcan_tim_isr_code(RTCANDriver * rtcanp) {
 		break;
 	default:
 		/* Should never happen. */
-		while (1)
-			;
+		rtcanp->state = RTCAN_ERROR;
+		while(1);
 		break;
 	}
 
@@ -155,11 +168,6 @@ void rtcan_alst_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 	msgp = rtcanp->onair[mbox];
 	rtcanp->onair[mbox] = NULL;
 
-	if (msgp == NULL) {
-		palTogglePad(LED_GPIO, LED4);
-		return;
-	}
-
 	msgqueue_insert(&(rtcanp->srt_queue), msgp);
 	msgp->status = RTCAN_MSG_QUEUED;
 
@@ -187,28 +195,37 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 #if RTCAN_USE_HRT
 	if ((rxf.id & 0x7F8000) == 0) {
 		switch (rtcanp->state) {
-			case RTCAN_SLAVE:
+		case RTCAN_SLAVE:
 			last_sync_tim = rtcan_lld_tim_get_counter(rtcanp);
-			rtcanp->cnt++;
+			rtcanp->cycle++;
 			rtcanp->slot = 0;
 			// FIXME: should be measured.
 			rtcan_lld_tim_set_counter(rtcanp, 158);
 			break;
-			case RTCAN_SYNCING:
-			rtcanp->cnt++;
-			if (rtcanp->cnt >= rtcanp->config->clock) {
+
+		case RTCAN_SYNCING:
+			if (rtcanp->cycle == 0) {
+				rtcan_lld_tim_start_timer(rtcanp);
+			}
+
+			if (rtcanp->cycle == rtcanp->config->clock) {
 				rtcan_lld_tim_stop_timer(rtcanp);
-				uint32_t interval = (rtcanp->slot * 0xFFFF + rtcan_lld_tim_get_counter(rtcanp)) / (rtcanp->config->clock * rtcanp->config->slots);
+				uint32_t interval = round(((float)(rtcanp->slot * 0xFFFF + rtcan_lld_tim_get_counter(rtcanp))) / (rtcanp->config->clock * rtcanp->config->slots));
 				rtcanp->state = RTCAN_SLAVE;
-				rtcanp->cnt = (rxf.id >> 7) & 0xFF;
+				rtcanp->cycle = (rxf.id >> 7) & 0xFF;
 				rtcanp->slot = 0;
 				rtcan_lld_tim_set_interval(rtcanp, interval);
 				rtcan_lld_tim_start_timer(rtcanp);
-				// FIXME: should be measured.
+				// FIXME: should be measured in loopback as it was done in v1.
 				rtcan_lld_tim_set_counter(rtcanp, 158);
+				break;
 			}
+
+			rtcanp->cycle++;
+
 			break;
-			default:
+
+		default:
 			break;
 		}
 
@@ -336,7 +353,6 @@ void rtcanStart(RTCANDriver *rtcanp, const RTCANConfig *config) {
 		rtcanp->state = RTCAN_SYNCING;
 		// TODO: calculate from config?.
 		rtcan_lld_tim_set_interval(rtcanp, 0xFFFF);
-		rtcan_lld_tim_start_timer(rtcanp);
 		rtcan_filter_t filter;
 		rtcan_lld_can_addfilter(rtcanp, 0, (0xFF00 << 7), &filter);
 	}
@@ -345,6 +361,10 @@ void rtcanStart(RTCANDriver *rtcanp, const RTCANConfig *config) {
 #endif /* RTCAN_USE_HRT */
 
 	chSysUnlock();
+
+	while (rtcanp->state == RTCAN_SYNCING) {
+		chThdSleepMilliseconds(10);
+	}
 }
 
 /**
@@ -428,6 +448,31 @@ void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp) {
 	rtcanp->filters[filter] = msgp;
 
 	rtcanUnlock();
+}
+
+/**
+ * @brief   XXX.
+ *
+ * @api
+ */
+void rtcanGetTime(RTCANDriver * rtcanp, rtcan_time_t * timep) {
+	uint32_t cycle;
+	uint32_t slot;
+	rtcan_cnt_t cnt;
+	rtcan_cnt_t interval;
+	long usecs;
+
+	do {
+		cycle = rtcanp->cycle;
+		slot = rtcanp->slot;
+		cnt = rtcan_lld_tim_get_counter(rtcanp);
+		interval = rtcan_lld_tim_get_interval(rtcanp);
+	} while (slot != rtcanp->slot);
+
+	usecs = ((cycle * rtcanp->config->slots) + rtcanp->slot) * (1000000 / rtcanp->config->clock  / rtcanp->config->slots) + cnt;
+
+	timep->sec = usecs / 1000000;
+	timep->nsec = (usecs % 1000000) * 1000;
 }
 
 /** @} */

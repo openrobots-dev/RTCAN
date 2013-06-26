@@ -1,6 +1,5 @@
 #include "rtcan.h"
 #include "rtcan_lld_can.h"
-#include "stm32f10x.h"
 
 //FIXME: remove ChibiOS dependency (IRQ numbers and priorities)
 #include "hal.h"
@@ -321,8 +320,14 @@ void rtcan_lld_can_start(RTCANDriver *rtcanp) {
 
 	/* BTR initialization.*/
 	/* TODO: to calculate from bitrate configuration */
+#ifdef BOARD_R2P_GW
+	rtcanp->can->BTR = CAN_BTR_SJW(0) | CAN_BTR_TS2(4) | CAN_BTR_TS1(7)
+				| CAN_BTR_BRP(2);
+#else
 	rtcanp->can->BTR = CAN_BTR_SJW(0) | CAN_BTR_TS2(2) | CAN_BTR_TS1(4)
-			| CAN_BTR_BRP(3);
+				| CAN_BTR_BRP(3);
+#endif
+
 
 	/* MCR initialization.*/
 	rtcanp->can->MCR = CAN_MCR_NART | CAN_MCR_TTCM;
@@ -439,6 +444,8 @@ bool_t rtcan_lld_can_rxne(RTCANDriver * rtcanp) {
  *
  * @notapi
  */
+// XXX
+int cnt = 0;
 void rtcan_lld_can_receive(RTCANDriver *rtcanp, rtcan_rxframe_t *rxfp) {
 	CAN_TypeDef * can = rtcanp->can;
 
@@ -449,6 +456,9 @@ void rtcan_lld_can_receive(RTCANDriver *rtcanp, rtcan_rxframe_t *rxfp) {
 		rxfp->data32[0] = can->sFIFOMailBox[0].RDLR;
 		rxfp->data32[1] = can->sFIFOMailBox[0].RDHR;
 		rxfp->filter = (uint8_t)(can->sFIFOMailBox[0].RDTR >> 8);
+
+		if (rxfp->id & (0xFF00 << 7))
+			cnt++;
 
 		/* Releases the mailbox.*/
 		can->RF0R = CAN_RF0R_RFOM0;

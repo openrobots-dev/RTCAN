@@ -1,6 +1,13 @@
 #ifndef _RTCAN_LLD_CAN_H_
 #define _RTCAN_LLD_CAN_H_
 
+#ifdef STM32F4XX
+#include "stm32f4xx.h"
+#else
+#include "stm32f10x.h"
+#endif
+
+
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/

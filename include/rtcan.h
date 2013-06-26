@@ -2,7 +2,12 @@
 #define _RTCAN_H_
 
 #include "ch.h"
+#include "board.h"
+#ifdef BOARD_R2P_GW
+#include "stm32f4xx.h"
+#else
 #include "stm32f10x.h"
+#endif
 
 //#define RTCAN_TEST
 
@@ -52,7 +57,7 @@
  * @brief   RTCAN HRT messaging enable switch.
  * @details If set to @p TRUE the support for HRT messaging is included.
  */
-#if !defined(RTCAN_STM32_CAN_USE_CAN1) || defined(__DOXYGEN__)
+#if !defined(RTCAN_USE_HRT) || defined(__DOXYGEN__)
 #define RTCAN_USE_HRT                  TRUE
 #endif
 
@@ -60,7 +65,7 @@
  * @brief   RTCAN SRT messaging enable switch.
  * @details If set to @p TRUE the support for SRT/NRT messaging is included.
  */
-#if !defined(RTCAN_STM32_CAN_USE_CAN1) || defined(__DOXYGEN__)
+#if !defined(RTCAN_USE_SRT) || defined(__DOXYGEN__)
 #define RTCAN_USE_SRT                  TRUE
 #endif
 
@@ -121,6 +126,11 @@ typedef uint8_t rtcan_mbox_t;
 typedef uint8_t rtcan_filter_t;
 
 typedef uint16_t rtcan_cnt_t;
+
+typedef struct {
+	uint32_t sec;
+	uint32_t nsec;
+} rtcan_time_t;
 
 //FIXME: dove vanno messi?
 #include "msgqueue.h"
@@ -212,7 +222,7 @@ typedef struct RTCANDriver {
 	/**
 	 * @brief Cycle counter.
 	 */
-	uint32_t cnt;
+	uint32_t cycle;
 	/**
 	 * @brief SRT message queue.
 	 */
@@ -288,6 +298,7 @@ void rtcanStop(RTCANDriver * canp);
 void rtcanTransmit(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout);
 void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout);
 void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp);
+void rtcanGetTime(RTCANDriver * rtcanp, rtcan_time_t * timep);
 #ifdef __cplusplus
 }
 #endif

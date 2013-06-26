@@ -20,7 +20,7 @@
 /*===========================================================================*/
 
 uint8_t srt_laxity(rtcan_msg_t* msgp) {
-	uint32_t laxity;
+	int32_t laxity;
 
 	laxity = msgp->deadline - chTimeNow();
 

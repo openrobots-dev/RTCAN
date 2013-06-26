@@ -1,6 +1,12 @@
 #ifndef _RTCAN_LLD_TIM_H_
 #define _RTCAN_LLD_TIM_H_
 
+#ifdef BOARD_R2P_GW
+#include "stm32f4xx.h"
+#else
+#include "stm32f10x.h"
+#endif
+
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
@@ -85,8 +91,10 @@ extern "C" {
   void rtcan_lld_tim_stop(RTCANDriver * rtcanp);
   void rtcan_lld_tim_start_timer(RTCANDriver * rtcanp);
   void rtcan_lld_tim_stop_timer(RTCANDriver * rtcanp);
-  void rtcan_lld_tim_set_period(RTCANDriver * rtcanp, rtcan_cnt_t interval);
+  void rtcan_lld_tim_set_interval(RTCANDriver * rtcanp, rtcan_cnt_t interval);
+  rtcan_cnt_t rtcan_lld_tim_get_interval(RTCANDriver * rtcanp);
   void rtcan_lld_tim_set_counter(RTCANDriver * rtcanp, rtcan_cnt_t cnt);
+  rtcan_cnt_t rtcan_lld_tim_get_counter(RTCANDriver * rtcanp);
 #ifdef __cplusplus
 }
 #endif

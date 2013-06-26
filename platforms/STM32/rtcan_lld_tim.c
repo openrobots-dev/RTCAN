@@ -8,7 +8,6 @@
 
 #include "rtcan.h"
 #include "rtcan_lld_tim.h"
-#include "stm32f10x.h"
 
 //FIXME: remove ChibiOS dependency (IRQ numbers and priorities)
 #include "hal.h"
@@ -83,7 +82,6 @@ void rtcan_lld_tim_start(RTCANDriver * rtcanp) {
 	/* Interrupts activation.*/
 	// FIXME: need a macro to get IRQ numbers from the used timer
 #if RTCAN_STM32_USE_CAN1
-	DBGMCU->CR |= DBGMCU_CR_DBG_TIM3_STOP;
 	rccEnableTIM3(FALSE);
 	rccResetTIM3();
 	nvicEnableVector(STM32_TIM3_NUMBER, CORTEX_PRIORITY_MASK(STM32_GPT_TIM3_IRQ_PRIORITY));
@@ -173,6 +171,12 @@ void rtcan_lld_tim_set_interval(RTCANDriver * rtcanp, rtcan_cnt_t interval) {
 	tim->ARR = interval - 1;
 }
 
+
+rtcan_cnt_t rtcan_lld_tim_get_interval(RTCANDriver * rtcanp) {
+	TIM_TypeDef * tim = rtcanp->tim;
+
+	return tim->ARR + 1;
+}
 
 rtcan_cnt_t rtcan_lld_tim_get_counter(RTCANDriver * rtcanp) {
 	TIM_TypeDef * tim = rtcanp->tim;

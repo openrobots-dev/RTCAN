@@ -1,6 +1,8 @@
 #include "rtcan.h"
 #include "hrt.h"
 
+#if RTCAN_USE_HRT
+
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
@@ -331,7 +333,7 @@ void hrt_transmit(RTCANDriver * rtcanp) {
 	uint32_t slot;
 
 	msgp = (hrt_msg_t *)rtcanp->hrt_calendar.next;
-	slot = (rtcanp->cnt * rtcanp->config->slots) + rtcanp->slot;
+	slot = (rtcanp->cycle * rtcanp->config->slots) + rtcanp->slot;
 
 	/* Check for empty local HRT calendar. */
 	if (msgp == (hrt_msg_t *)&(rtcanp->hrt_calendar)) {
@@ -387,3 +389,4 @@ void hrt_transmit(RTCANDriver * rtcanp) {
 	return;
 }
 
+#endif /* RTCAN_USE_HRT */

@@ -1,6 +1,8 @@
 #ifndef _RTCAN_H_
 #define _RTCAN_H_
 
+#include <stdint.h>
+
 #include "ch.h"
 #include "board.h"
 #ifdef BOARD_R2P_GW
@@ -115,6 +117,12 @@ typedef enum {
 	RTCAN_MSG_ERROR = 6,
 } rtcan_msgstatus_t;
 
+
+/**
+ * @brief   RTCAN message ID type.
+ */
+typedef uint16_t rtcan_id_t;
+
 /**
  * @brief   CAN transmit mailbox type.
  */
@@ -172,6 +180,7 @@ struct __attribute__ ((__packed__)) rtcan_msg_t {
 	rtcan_msg_t *next;
 	rtcan_msgstatus_t status;
 	rtcan_msgcallback_t callback;
+	// FIXME
 	void * params;
 	union {
 		struct {
@@ -182,9 +191,9 @@ struct __attribute__ ((__packed__)) rtcan_msg_t {
 			uint16_t period;
 		};
 	};
-	uint16_t id;
+	rtcan_id_t id;
 	uint16_t size;
-	uint8_t *data;
+	const uint8_t *data;
 	uint8_t *ptr;
 	uint8_t fragment :7;
 };

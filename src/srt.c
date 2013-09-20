@@ -63,10 +63,12 @@ bool_t srt_transmit(RTCANDriver * rtcanp) {
 	}
 
 	/* Check for deadline */
+	/*
 	if (msgp->deadline <= chTimeNow()) {
 		msgp->status = RTCAN_MSG_TIMEOUT;
 		return FALSE;
 	}
+    */
 
 	txfp.id = ((srt_laxity(msgp) << 23) | ((msgp->id & 0xFFFF) << 7) | ((msgp->fragment) & 0x7F));
 

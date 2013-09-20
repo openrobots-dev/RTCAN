@@ -93,9 +93,13 @@ void rtcan_lld_tim_start(RTCANDriver * rtcanp) {
 	nvicEnableVector(STM32_TIM4_NUMBER, CORTEX_PRIORITY_MASK(STM32_GPT_TIM4_IRQ_PRIORITY));
 #endif
 
+#ifdef STM32F4XX
+	// FIXME: need a macro
+	clock = 42000000 * 2;
+#else
 	// FIXME: need a macro
 	clock = 36000000 * 2;
-
+#endif
 	/* Prescaler value calculation.*/
 	psc = (uint16_t)((clock / rtcanp->config->baudrate) - 1);
 

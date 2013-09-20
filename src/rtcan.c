@@ -83,7 +83,6 @@ void rtcan_tim_isr_code(RTCANDriver * rtcanp) {
 	case RTCAN_SLAVE:
 		if (rtcanp->slot > rtcanp->config->slots) {
 			rtcanp->state = RTCAN_ERROR;
-			while(1);
 		}
 		break;
 	case RTCAN_SYNCING:
@@ -95,7 +94,6 @@ void rtcan_tim_isr_code(RTCANDriver * rtcanp) {
 	default:
 		/* Should never happen. */
 		rtcanp->state = RTCAN_ERROR;
-		while(1);
 		break;
 	}
 
@@ -167,6 +165,13 @@ void rtcan_alst_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 
 	msgp = rtcanp->onair[mbox];
 	rtcanp->onair[mbox] = NULL;
+
+	if (msgp == NULL) {
+		/* should never happen */
+		while(1);
+		chSysUnlockFromIsr();
+		return;
+	}
 
 	msgqueue_insert(&(rtcanp->srt_queue), msgp);
 	msgp->status = RTCAN_MSG_QUEUED;

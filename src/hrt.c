@@ -296,7 +296,7 @@ void calendar_prepare(hrt_calendar_t * calp) {
 
 	while (msgp->next != (hrt_msg_t *)calp) {
 		msgp = msgp->next;
-		hrt_set_slot(msgp);
+		calendar_set_slot(calp, msgp);
     }
 }
 

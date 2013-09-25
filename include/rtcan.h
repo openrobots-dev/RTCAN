@@ -296,6 +296,7 @@ typedef struct RTCANDriver {
 #ifdef __cplusplus
 extern "C" {
 #endif
+uint8_t stm32_id8(void);
 void rtcan_tim_isr_code(RTCANDriver * rtcanp);
 void rtcan_txok_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox);
 void rtcan_alst_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox);

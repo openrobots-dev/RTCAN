@@ -26,7 +26,7 @@ uint32_t last_sync_tim = 0;
 
 // TODO: restore old master arbitration protocol
 uint8_t stm32_id8(void) {
-	const unsigned long * uid = (const unsigned long *)0x1FFFF7E8;
+	const unsigned long * uid = (const unsigned long *) 0x1FFFF7E8;
 
 	return (uid[2] & 0xFF);
 }
@@ -71,14 +71,14 @@ void rtcan_tim_isr_code(RTCANDriver * rtcanp) {
 	switch (rtcanp->state) {
 #if RTCAN_USE_HRT
 	case RTCAN_MASTER:
-		if (rtcanp->slot == (rtcanp->config->slots - 1)) {
-			rtcanp->cycle++;
-			rtcanp->slot = 0;
-			rtcan_sync_transmit(rtcanp);
-			chSysUnlockFromIsr();
-			return;
-		}
-		break;
+	if (rtcanp->slot == (rtcanp->config->slots - 1)) {
+		rtcanp->cycle++;
+		rtcanp->slot = 0;
+		rtcan_sync_transmit(rtcanp);
+		chSysUnlockFromIsr();
+		return;
+	}
+	break;
 #endif
 	case RTCAN_SLAVE:
 		if (rtcanp->slot > rtcanp->config->slots) {
@@ -168,7 +168,8 @@ void rtcan_alst_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 
 	if (msgp == NULL) {
 		/* should never happen */
-		while(1);
+		while (1)
+			;
 		chSysUnlockFromIsr();
 		return;
 	}
@@ -200,7 +201,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 #if RTCAN_USE_HRT
 	if ((rxf.id & 0x7F8000) == 0) {
 		switch (rtcanp->state) {
-		case RTCAN_SLAVE:
+			case RTCAN_SLAVE:
 			last_sync_tim = rtcan_lld_tim_get_counter(rtcanp);
 			rtcanp->cycle++;
 			rtcanp->slot = 0;
@@ -208,14 +209,15 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 			rtcan_lld_tim_set_counter(rtcanp, 158);
 			break;
 
-		case RTCAN_SYNCING:
+			case RTCAN_SYNCING:
 			if (rtcanp->cycle == 0) {
 				rtcan_lld_tim_start_timer(rtcanp);
 			}
 
 			if (rtcanp->cycle == rtcanp->config->clock) {
 				rtcan_lld_tim_stop_timer(rtcanp);
-				uint32_t interval = round(((float)(rtcanp->slot * 0xFFFF + rtcan_lld_tim_get_counter(rtcanp))) / (rtcanp->config->clock * rtcanp->config->slots));
+				float tmp = (rtcanp->slot * 0xFFFF + rtcan_lld_tim_get_counter(rtcanp)) / (rtcanp->config->clock * rtcanp->config->slots);
+				uint32_t interval = (uint32_t) (tmp + 0.5f);
 				rtcanp->state = RTCAN_SLAVE;
 				rtcanp->cycle = (rxf.id >> 7) & 0xFF;
 				rtcanp->slot = 0;
@@ -230,7 +232,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 
 			break;
 
-		default:
+			default:
 			break;
 		}
 
@@ -332,44 +334,44 @@ void rtcanReset(RTCANDriver * rtcanp) {
 void rtcanStart(RTCANDriver *rtcanp, const RTCANConfig *config) {
 
 	rtcanDbgCheck((rtcanp != NULL) || (config != NULL), "rtcanStart")
-	;
+;
 
-	chSysLock()
-	;
-	rtcanDbgAssert((rtcanp->state == RTCAN_STOP),
-			"rtcanStart(), #1", "invalid state")
-	;
+chSysLock()
+;
+rtcanDbgAssert((rtcanp->state == RTCAN_STOP),
+		"rtcanStart(), #1", "invalid state")
+;
 
-	if (rtcanp->state == RTCAN_STOP) {
-		rtcanp->config = config;
-		rtcan_lld_can_start(rtcanp);
-		rtcanp->state = RTCAN_STARTING;
-	}
+if (rtcanp->state == RTCAN_STOP) {
+	rtcanp->config = config;
+	rtcan_lld_can_start(rtcanp);
+	rtcanp->state = RTCAN_STARTING;
+}
 
 #if RTCAN_USE_HRT
-	rtcan_lld_tim_start(rtcanp);
+rtcan_lld_tim_start(rtcanp);
 
-	if (rtcan_ismaster()) {
-		rtcanp->state = RTCAN_MASTER;
-		// TODO: to be estimated (loopback).
-		rtcan_lld_tim_set_interval(rtcanp, 166);
-		rtcan_lld_tim_start_timer(rtcanp);
-	} else {
-		rtcanp->state = RTCAN_SYNCING;
-		// TODO: calculate from config?.
-		rtcan_lld_tim_set_interval(rtcanp, 0xFFFF);
-		rtcan_filter_t filter;
-		rtcan_lld_can_addfilter(rtcanp, 0, (0xFF00 << 7), &filter);
-	}
+if (rtcan_ismaster()) {
+	rtcanp->state = RTCAN_MASTER;
+	// TODO: to be estimated (loopback).
+	rtcan_lld_tim_set_interval(rtcanp, 166);
+	rtcan_lld_tim_start_timer(rtcanp);
+} else {
+	rtcanp->state = RTCAN_SYNCING;
+	// TODO: calculate from config?.
+	rtcan_lld_tim_set_interval(rtcanp, 0xFFFF);
+	rtcan_filter_t filter;
+	rtcan_lld_can_addfilter(rtcanp, 0, (0xFF00 << 7), &filter);
+}
 #else
-	rtcanp->state = RTCAN_SLAVE;
+rtcanp->state = RTCAN_SLAVE;
 #endif /* RTCAN_USE_HRT */
 
-	chSysUnlock();
+chSysUnlock();
 
-	while (rtcanp->state == RTCAN_SYNCING) {
-		chThdSleepMilliseconds(10);
-	}
+while (rtcanp->state == RTCAN_SYNCING) {
+	chThdSleepMilliseconds(10);
+}
 }
 
 /**
@@ -381,17 +383,17 @@ void rtcanStart(RTCANDriver *rtcanp, const RTCANConfig *config) {
  */
 void rtcanStop(RTCANDriver *rtcanp) {
 
-	rtcanDbgCheck(rtcanp != NULL, "rtcanStop")
-	;
+rtcanDbgCheck(rtcanp != NULL, "rtcanStop")
+;
 
-	chSysLock()
-	;
-	rtcanDbgAssert((rtcanp->state == RTCAN_MASTER) || (rtcanp->state == RTCAN_SLAVE),
-			"rtcanStop(), #1", "invalid state")
-	;
-	rtcan_lld_can_stop(rtcanp);
-	rtcanp->state = RTCAN_STOP;
-	chSysUnlock();
+chSysLock()
+;
+rtcanDbgAssert((rtcanp->state == RTCAN_MASTER) || (rtcanp->state == RTCAN_SLAVE),
+	"rtcanStop(), #1", "invalid state")
+;
+rtcan_lld_can_stop(rtcanp);
+rtcanp->state = RTCAN_STOP;
+chSysUnlock();
 }
 
 /**
@@ -401,9 +403,10 @@ void rtcanStop(RTCANDriver *rtcanp) {
  */
 void rtcanTransmit(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
 
-	rtcanLock();
-	rtcanTransmitI(rtcanp, msgp, timeout);
-	rtcanUnlock();
+rtcanLock()
+;
+rtcanTransmitI(rtcanp, msgp, timeout);
+rtcanUnlock();
 }
 
 /**
@@ -413,26 +416,26 @@ void rtcanTransmit(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
  */
 void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
 
-	/* Lock message */
-	msgp->status = RTCAN_MSG_BUSY;
+/* Lock message */
+msgp->status = RTCAN_MSG_BUSY;
 
-	/* Compute absolute deadline */
-	msgp->deadline = chTimeNow() + timeout;
+/* Compute absolute deadline */
+msgp->deadline = chTimeNow() + timeout;
 
-	/* Reset fragment counter. */
-	if (msgp->size > RTCAN_FRAME_SIZE) {
-		msgp->fragment = msgp->size / RTCAN_FRAME_SIZE;
-	} else {
-		msgp->fragment = 0;
-	}
+/* Reset fragment counter. */
+if (msgp->size > RTCAN_FRAME_SIZE) {
+msgp->fragment = msgp->size / RTCAN_FRAME_SIZE;
+} else {
+msgp->fragment = 0;
+}
 
-	/* Reset data pointer. */
-	msgp->ptr = msgp->data;
+/* Reset data pointer. */
+msgp->ptr = msgp->data;
 
-	msgqueue_insert(&(rtcanp->srt_queue), msgp);
-	msgp->status = RTCAN_MSG_QUEUED;
+msgqueue_insert(&(rtcanp->srt_queue), msgp);
+msgp->status = RTCAN_MSG_QUEUED;
 #if !(RTCAN_USE_HRT)
-	srt_transmit(rtcanp);
+srt_transmit(rtcanp);
 #endif
 }
 
@@ -442,17 +445,16 @@ void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
  * @api
  */
 void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp) {
-	rtcan_filter_t filter;
+rtcan_filter_t filter;
 
-	rtcanLock()
-	;
+rtcanLock()
+;
 
-	/* Add the hardware filter. */
-	rtcan_lld_can_addfilter(rtcanp, ((msgp->id & 0xFFFF) << 7), (0xFFFF << 7),
-			&filter);
-	rtcanp->filters[filter] = msgp;
+/* Add the hardware filter. */
+rtcan_lld_can_addfilter(rtcanp, ((msgp->id & 0xFFFF) << 7), (0xFFFF << 7), &filter);
+rtcanp->filters[filter] = msgp;
 
-	rtcanUnlock();
+rtcanUnlock();
 }
 
 /**
@@ -461,23 +463,24 @@ void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp) {
  * @api
  */
 void rtcanGetTime(RTCANDriver * rtcanp, rtcan_time_t * timep) {
-	uint32_t cycle;
-	uint32_t slot;
-	rtcan_cnt_t cnt;
-	rtcan_cnt_t interval;
-	long usecs;
+uint32_t cycle;
+uint32_t slot;
+rtcan_cnt_t cnt;
+rtcan_cnt_t interval;
+long usecs;
 
-	do {
-		cycle = rtcanp->cycle;
-		slot = rtcanp->slot;
-		cnt = rtcan_lld_tim_get_counter(rtcanp);
-		interval = rtcan_lld_tim_get_interval(rtcanp);
-	} while (slot != rtcanp->slot);
+do {
+cycle = rtcanp->cycle;
+slot = rtcanp->slot;
+cnt = rtcan_lld_tim_get_counter(rtcanp);
+interval = rtcan_lld_tim_get_interval(rtcanp);
+} while (slot != rtcanp->slot);
 
-	usecs = ((cycle * rtcanp->config->slots) + rtcanp->slot) * (1000000 / rtcanp->config->clock  / rtcanp->config->slots) + cnt;
+usecs = ((cycle * rtcanp->config->slots) + rtcanp->slot) * (1000000 / rtcanp->config->clock / rtcanp->config->slots)
+	+ cnt;
 
-	timep->sec = usecs / 1000000;
-	timep->nsec = (usecs % 1000000) * 1000;
+timep->sec = usecs / 1000000;
+timep->nsec = (usecs % 1000000) * 1000;
 }
 
 /** @} */

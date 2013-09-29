@@ -255,16 +255,38 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 		msgp->status = RTCAN_MSG_ONAIR;
 		msgp->ptr = msgp->data;
 		msgp->id = (rxf.id >> 7) & 0xFFFF;
+
+		/* Reset fragment counter. */
+		if (msgp->size > RTCAN_FRAME_SIZE) {
+			msgp->fragment = msgp->size / RTCAN_FRAME_SIZE;
+		} else {
+			msgp->fragment = 0;
+		}
 	}
 
 	if (msgp->status == RTCAN_MSG_ONAIR) {
 		uint32_t i;
 
+		/* check source (needed by mw v2). */
+		uint8_t source = (rxf.id >> 7) & 0xFF;
+		uint8_t prevsource = msgp->id & 0xFF;
+		if (source != prevsource) {
+//		if (msgp->id != ((rxf.id >> 7) & 0xFFFF)) {
+			chSysUnlockFromIsr();
+			return;
+		}
+
+		/* check fragment */
+		uint8_t fragment = rxf.id & 0x7F;
+		if (fragment != msgp->fragment) {
+			msgp->status = RTCAN_MSG_READY;
+			chSysUnlockFromIsr();
+			return;
+		}
+
 		for (i = 0; i < rxf.len; i++) {
 			*(msgp->ptr++) = rxf.data8[i];
 		}
-
-		msgp->fragment = rxf.id & 0x7F;
 	}
 
 	if (msgp->fragment > 0) {
@@ -370,7 +392,7 @@ rtcanp->state = RTCAN_SLAVE;
 chSysUnlock();
 
 while (rtcanp->state == RTCAN_SYNCING) {
-	chThdSleepMilliseconds(10);
+	rtcan_blinker();
 }
 }
 
@@ -451,7 +473,20 @@ rtcanLock()
 ;
 
 /* Add the hardware filter. */
-rtcan_lld_can_addfilter(rtcanp, ((msgp->id & 0xFFFF) << 7), (0xFFFF << 7), &filter);
+rtcan_lld_can_addfilter(rtcanp, (msgp->id & 0xFFFF) << 7, 0xFFFF << 7, &filter);
+rtcanp->filters[filter] = msgp;
+
+rtcanUnlock();
+}
+
+void rtcanReceiveMask(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t mask) {
+rtcan_filter_t filter;
+
+rtcanLock()
+;
+
+/* Add the hardware filter. */
+rtcan_lld_can_addfilter(rtcanp, (msgp->id & 0xFFFF) << 7, (mask & 0xFFFF) << 7, &filter);
 rtcanp->filters[filter] = msgp;
 
 rtcanUnlock();
@@ -481,6 +516,36 @@ usecs = ((cycle * rtcanp->config->slots) + rtcanp->slot) * (1000000 / rtcanp->co
 
 timep->sec = usecs / 1000000;
 timep->nsec = (usecs % 1000000) * 1000;
+}
+
+void rtcan_blinker(void) {
+switch (RTCAND1.state) {
+case RTCAN_MASTER:
+palClearPad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(200);
+palSetPad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(100);
+palClearPad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(200);
+palSetPad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(500);
+break;
+case RTCAN_SYNCING:
+palTogglePad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(100);
+break;
+case RTCAN_SLAVE:
+palTogglePad(LED1_GPIO, LED1);
+chThdSleepMilliseconds(500);
+break;
+case RTCAN_ERROR:
+palTogglePad(LED4_GPIO, LED4);
+chThdSleepMilliseconds(200);
+break;
+default:
+chThdSleepMilliseconds(100);
+break;
+}
 }
 
 /** @} */

@@ -60,7 +60,7 @@
  * @details If set to @p TRUE the support for HRT messaging is included.
  */
 #if !defined(RTCAN_USE_HRT) || defined(__DOXYGEN__)
-#define RTCAN_USE_HRT                  TRUE
+#define RTCAN_USE_HRT                  0
 #endif
 
 /**
@@ -68,7 +68,7 @@
  * @details If set to @p TRUE the support for SRT/NRT messaging is included.
  */
 #if !defined(RTCAN_USE_SRT) || defined(__DOXYGEN__)
-#define RTCAN_USE_SRT                  TRUE
+#define RTCAN_USE_SRT                  1
 #endif
 
 /** @} */
@@ -180,7 +180,6 @@ struct __attribute__ ((__packed__)) rtcan_msg_t {
 	rtcan_msg_t *next;
 	rtcan_msgstatus_t status;
 	rtcan_msgcallback_t callback;
-	// FIXME
 	void * params;
 	union {
 		struct {
@@ -308,7 +307,9 @@ void rtcanStop(RTCANDriver * canp);
 void rtcanTransmit(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout);
 void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout);
 void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp);
+void rtcanReceiveMask(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t mask);
 void rtcanGetTime(RTCANDriver * rtcanp, rtcan_time_t * timep);
+void rtcan_blinker(void);
 #ifdef __cplusplus
 }
 #endif

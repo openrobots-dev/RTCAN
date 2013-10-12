@@ -140,7 +140,6 @@ typedef struct {
 	uint32_t nsec;
 } rtcan_time_t;
 
-//FIXME: dove vanno messi?
 #include "msgqueue.h"
 #include "hrt.h"
 #include "srt.h"

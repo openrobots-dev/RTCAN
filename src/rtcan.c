@@ -287,17 +287,16 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 		for (i = 0; i < rxf.len; i++) {
 			*(msgp->ptr++) = rxf.data8[i];
 		}
-	}
 
-	if (msgp->fragment > 0) {
-		msgp->fragment--;
-	} else {
-		msgp->status = RTCAN_MSG_READY;
-		if (msgp->callback) {
-			msgp->callback(msgp);
+		if (msgp->fragment > 0) {
+			msgp->fragment--;
+		} else {
+			msgp->status = RTCAN_MSG_READY;
+			if (msgp->callback) {
+				msgp->callback(msgp);
+			}
 		}
 	}
-
 	chSysUnlockFromIsr();
 }
 

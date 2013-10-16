@@ -20,7 +20,7 @@ void msgqueue_insert(msgqueue_t * queuep, rtcan_msg_t * msgp) {
 
 	/* Deadline based list insert. */
 	while (curr_msgp->next != (rtcan_msg_t *)queuep) {
-		if (msgp->deadline < (curr_msgp->next)->deadline) {
+		if (curr_msgp->deadline > msgp->deadline) {
 			break;
 		}
 		curr_msgp = curr_msgp->next;

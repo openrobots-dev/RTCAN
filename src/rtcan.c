@@ -253,7 +253,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 
 	if (msgp->status == RTCAN_MSG_READY) {
 		msgp->status = RTCAN_MSG_ONAIR;
-		msgp->ptr = msgp->data;
+		msgp->ptr = (uint8_t *)msgp->data;
 		msgp->id = (rxf.id >> 7) & 0xFFFF;
 
 		/* Reset fragment counter. */
@@ -451,7 +451,7 @@ msgp->fragment = 0;
 }
 
 /* Reset data pointer. */
-msgp->ptr = msgp->data;
+msgp->ptr = (uint8_t *)msgp->data;
 
 msgqueue_insert(&(rtcanp->srt_queue), msgp);
 msgp->status = RTCAN_MSG_QUEUED;

@@ -393,7 +393,8 @@ void rtcan_lld_can_stop(RTCANDriver *rtcanp) {
  */
 bool_t rtcan_lld_can_txe(RTCANDriver *rtcanp) {
 
-	return (rtcanp->can->TSR & CAN_TSR_TME ) != 0;
+//	return (rtcanp->can->TSR & CAN_TSR_TME ) != 0;
+	return (rtcanp->can->TSR & CAN_TSR_TME ) == CAN_TSR_TME;  // WORKAROUND
 }
 
 /**

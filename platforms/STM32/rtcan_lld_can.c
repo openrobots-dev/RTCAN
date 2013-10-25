@@ -70,6 +70,18 @@ static void rtcan_lld_can_tx_handler(RTCANDriver *rtcanp) {
 	if (tsr & CAN_TSR_ALST2) {
 		rtcan_alst_isr_code(rtcanp, 2);
 	}
+
+	if (tsr & CAN_TSR_TERR0) {
+		rtcan_terr_isr_code(rtcanp, 0);
+	}
+
+	if (tsr & CAN_TSR_TERR1) {
+		rtcan_terr_isr_code(rtcanp, 1);
+	}
+
+	if (tsr & CAN_TSR_TERR2) {
+		rtcan_terr_isr_code(rtcanp, 2);
+	}
 }
 
 /**

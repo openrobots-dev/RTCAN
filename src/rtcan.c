@@ -185,6 +185,37 @@ void rtcan_alst_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 }
 
 /**
+ * @brief   Transmission error interrupt platform-independent code.
+ *
+ * @api
+ */
+void rtcan_terr_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
+	rtcan_msg_t* msgp;
+
+	chSysLockFromIsr()
+	;
+
+	msgp = rtcanp->onair[mbox];
+	rtcanp->onair[mbox] = NULL;
+
+	if (msgp == NULL) {
+		/* should never happen */
+		while (1)
+			;
+		chSysUnlockFromIsr();
+		return;
+	}
+
+	msgp->status = RTCAN_MSG_TIMEOUT;
+
+#if !(RTCAN_USE_HRT)
+	srt_transmit(rtcanp);
+#endif
+
+	chSysUnlockFromIsr();
+}
+
+/**
  * @brief   Receive interrupt platform-independent code.
  *
  * @api
@@ -253,7 +284,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 
 	if (msgp->status == RTCAN_MSG_READY) {
 		msgp->status = RTCAN_MSG_ONAIR;
-		msgp->ptr = msgp->data;
+		msgp->ptr = (uint8_t *)msgp->data;
 		msgp->id = (rxf.id >> 7) & 0xFFFF;
 
 		/* Reset fragment counter. */
@@ -447,7 +478,7 @@ void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
 	}
 
 	/* Reset data pointer. */
-	msgp->ptr = msgp->data;
+	msgp->ptr = (uint8_t *)msgp->data;
 
 	msgqueue_insert(&(rtcanp->srt_queue), msgp);
 	msgp->status = RTCAN_MSG_QUEUED;
@@ -496,14 +527,12 @@ void rtcanGetTime(RTCANDriver * rtcanp, rtcan_time_t * timep) {
 	uint32_t cycle;
 	uint32_t slot;
 	rtcan_cnt_t cnt;
-	rtcan_cnt_t interval;
 	long usecs;
 
 	do {
 		cycle = rtcanp->cycle;
 		slot = rtcanp->slot;
 		cnt = rtcan_lld_tim_get_counter(rtcanp);
-		interval = rtcan_lld_tim_get_interval(rtcanp);
 	} while (slot != rtcanp->slot);
 
 	usecs = ((cycle * rtcanp->config->slots) + rtcanp->slot) * (1000000 / rtcanp->config->clock / rtcanp->config->slots)

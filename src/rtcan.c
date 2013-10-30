@@ -208,6 +208,10 @@ void rtcan_terr_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 
 	msgp->status = RTCAN_MSG_TIMEOUT;
 
+	if (msgp->callback) {
+		msgp->callback(msgp);
+	}
+
 #if !(RTCAN_USE_HRT)
 	srt_transmit(rtcanp);
 #endif
@@ -289,7 +293,7 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 
 		/* Reset fragment counter. */
 		if (msgp->size > RTCAN_FRAME_SIZE) {
-			msgp->fragment = msgp->size / RTCAN_FRAME_SIZE;
+			msgp->fragment = (msgp->size - 1) / RTCAN_FRAME_SIZE;
 		} else {
 			msgp->fragment = 0;
 		}
@@ -472,7 +476,7 @@ void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
 
 	/* Reset fragment counter. */
 	if (msgp->size > RTCAN_FRAME_SIZE) {
-		msgp->fragment = msgp->size / RTCAN_FRAME_SIZE;
+		msgp->fragment = (msgp->size - 1) / RTCAN_FRAME_SIZE;
 	} else {
 		msgp->fragment = 0;
 	}

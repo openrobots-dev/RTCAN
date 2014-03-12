@@ -278,6 +278,8 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 
 	msgp = rtcanp->filters[rxf.filter];
 
+	if (msgp->data == 0xc4200022) while(1); // XXX
+
 	/* Should never happen. */
 	if (msgp == NULL) {
 		chSysUnlockFromIsr();
@@ -326,9 +328,10 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 		if (msgp->fragment > 0) {
 			msgp->fragment--;
 		} else {
-			msgp->status = RTCAN_MSG_READY;
 			if (msgp->callback) {
+				msgp->status = RTCAN_MSG_BUSY;
 				msgp->callback(msgp);
+				msgp->status = RTCAN_MSG_READY;
 			}
 		}
 	}
@@ -499,8 +502,7 @@ void rtcanTransmitI(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t timeout) {
 void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp) {
 	rtcan_filter_t filter;
 
-	rtcanLock()
-	;
+	rtcanLock();
 
 	/* Add the hardware filter. */
 	rtcan_lld_can_addfilter(rtcanp, (msgp->id & 0xFFFF) << 7, 0xFFFF << 7, &filter);
@@ -512,8 +514,7 @@ void rtcanReceive(RTCANDriver * rtcanp, rtcan_msg_t *msgp) {
 void rtcanReceiveMask(RTCANDriver * rtcanp, rtcan_msg_t *msgp, uint32_t mask) {
 	rtcan_filter_t filter;
 
-	rtcanLock()
-	;
+	rtcanLock();
 
 	/* Add the hardware filter. */
 	rtcan_lld_can_addfilter(rtcanp, (msgp->id & 0xFFFF) << 7, (mask & 0xFFFF) << 7, &filter);

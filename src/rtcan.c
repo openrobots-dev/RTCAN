@@ -126,13 +126,6 @@ void rtcan_txok_isr_code(RTCANDriver * rtcanp, rtcan_mbox_t mbox) {
 	msgp = rtcanp->onair[mbox];
 	rtcanp->onair[mbox] = NULL;
 
-	/* Should never happen. */
-	if (msgp == NULL) {
-		chSysUnlockFromIsr();
-//		while(1);
-		return;
-	}
-
 	if (msgp->fragment > 0) {
 		msgp->fragment--;
 		msgp->ptr += RTCAN_FRAME_SIZE;
@@ -277,8 +270,6 @@ void rtcan_rx_isr_code(RTCANDriver * rtcanp) {
 #endif /* RTCAN_USE_HRT */
 
 	msgp = rtcanp->filters[rxf.filter];
-
-	if (msgp->data == 0xc4200022) while(1); // XXX
 
 	/* Should never happen. */
 	if (msgp == NULL) {

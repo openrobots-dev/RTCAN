@@ -97,8 +97,8 @@
 /**
  * @brief   CAN2 interrupt priority level setting.
  */
-#if !defined(RTCAN_STM32_CAN_CAN1_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define RTCAN_STM32_CAN_CAN1_IRQ_PRIORITY         5
+#if !defined(RTCAN_STM32_CAN_CAN2_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define RTCAN_STM32_CAN_CAN2_IRQ_PRIORITY         5
 #endif
 /** @} */
 

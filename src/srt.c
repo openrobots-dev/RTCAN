@@ -41,12 +41,6 @@ bool_t srt_transmit(RTCANDriver * rtcanp) {
 	rtcan_msg_t* msgp;
 	rtcan_txframe_t txfp;
 
-	// XXX
-
-	if (rtcanp->slot == 59) {
-		return FALSE;
-	}
-
 	if (msgqueue_isempty(&(rtcanp->srt_queue))) {
 		return FALSE;
 	}
@@ -55,12 +49,12 @@ bool_t srt_transmit(RTCANDriver * rtcanp) {
 		return FALSE;
 	}
 
+	if (rtcanp->onair[0]) { // XXX DEBUG
+		return FALSE;
+	}
+
 	msgp = msgqueue_get(&(rtcanp->srt_queue));
 
-	// XXX
-	if (msgp->status != RTCAN_MSG_QUEUED) {
-		while(1);
-	}
 
 	/* Check for deadline */
 	/*

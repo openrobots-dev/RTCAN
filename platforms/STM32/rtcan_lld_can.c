@@ -8,7 +8,6 @@
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
 
-uint32_t last_id = 0;
 /*===========================================================================*/
 /* Driver exported variables.                                                */
 /*===========================================================================*/
@@ -340,7 +339,6 @@ void rtcan_lld_can_start(RTCANDriver *rtcanp) {
 				| CAN_BTR_BRP(3);
 #endif
 
-
 	/* MCR initialization.*/
 	rtcanp->can->MCR = CAN_MCR_NART | CAN_MCR_TTCM;
 
@@ -406,7 +404,7 @@ void rtcan_lld_can_stop(RTCANDriver *rtcanp) {
 bool_t rtcan_lld_can_txe(RTCANDriver *rtcanp) {
 
 //	return (rtcanp->can->TSR & CAN_TSR_TME ) != 0;
-	return (rtcanp->can->TSR & CAN_TSR_TME ) == CAN_TSR_TME;  // WORKAROUND
+	return (rtcanp->can->TSR & CAN_TSR_TME ) == CAN_TSR_TME;  // XXX WORKAROUND
 }
 
 /**
@@ -421,7 +419,8 @@ void rtcan_lld_can_transmit(RTCANDriver * rtcanp, rtcan_txframe_t * txfp) {
 	CAN_TypeDef * can = rtcanp->can;
 	CAN_TxMailBox_TypeDef *tmbp;
 
-	txfp->mbox = (rtcanp->can->TSR & CAN_TSR_CODE ) >> 24;
+//	txfp->mbox = (rtcanp->can->TSR & CAN_TSR_CODE ) >> 24;
+	txfp->mbox = 0; // XXX WORKAROUND
 	tmbp = &can->sTxMailBox[txfp->mbox];
 
 	tmbp->TIR =	(txfp->id << 3) | CAN_TI0R_IDE;
@@ -430,7 +429,6 @@ void rtcan_lld_can_transmit(RTCANDriver * rtcanp, rtcan_txframe_t * txfp) {
 	tmbp->TDLR = txfp->data32[0];
 	tmbp->TDHR = txfp->data32[1];
 	tmbp->TIR |= CAN_TI0R_TXRQ;
-	last_id = txfp->id;
 }
 
 /**
